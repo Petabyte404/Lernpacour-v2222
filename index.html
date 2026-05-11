@@ -17,7 +17,7 @@ body {
   background:rgba(255,255,255,0.05);
   padding:25px;
   border-radius:15px;
-  width:320px;
+  width:340px;
   margin:40px auto;
 }
 
@@ -28,11 +28,19 @@ button {
   border-radius:8px;
   background:#3b82f6;
   color:white;
+  cursor:pointer;
 }
 
-.choice { width:100%; display:block; }
+.choice {
+  width:100%;
+  display:block;
+}
 
 .hidden { display:none; }
+
+.loader {
+  font-size:18px;
+}
 </style>
 </head>
 
@@ -43,6 +51,7 @@ button {
 <div id="login" class="card">
   <input id="code" placeholder="Code"><br>
   <button onclick="start()">Start</button>
+
   <div id="lb1"></div>
 </div>
 
@@ -53,7 +62,7 @@ button {
 </div>
 
 <div id="loading" class="card hidden">
-⏳ Auswertung...
+⏳ Ergebnisse werden ausgewertet...
 </div>
 
 <div id="result" class="card hidden">
@@ -62,11 +71,14 @@ button {
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbwumvk25jZJFI240Os_dRx4Y42b1E2BIBxk8fHcjtOcQS1-ZpP0uYW3TXcwcWVe1mA77g/exec";
-const CODE = "7G5K";
 
-let answers = ["a","c","a","b"];
+const API = "https://script.google.com/macros/s/AKfycbwumvk25jZJFI240Os_dRx4Y42b1E2BIBxk8fHcjtOcQS1-ZpP0uYW3TXcwcWVe1mA77g/exec";
+const CODE = "TEST";
+
+const answers = ["a","c","a","b"];
 let user = [];
+
+/* ---------------- UI ---------------- */
 
 function show(id){
   ["login","quiz","loading","result"].forEach(x =>
@@ -75,15 +87,20 @@ function show(id){
   document.getElementById(id).classList.remove("hidden");
 }
 
+/* ---------------- LOGIN ---------------- */
+
 function start(){
-  if(code.value.toUpperCase()===CODE){
+  if(code.value.toUpperCase() === CODE){
     show("quiz");
     render();
-  }
+  } else alert("Falsch");
 }
+
+/* ---------------- QUIZ ---------------- */
 
 function render(){
   const q = document.getElementById("q");
+
   answers.forEach((_,i)=>{
     q.innerHTML += `
       <p>Frage ${i+1}</p>
@@ -95,55 +112,71 @@ function render(){
   });
 }
 
-function pick(i,v){ user[i]=v; }
+function pick(i,v){
+  user[i] = v;
+}
+
+/* ---------------- SUBMIT (NO-CORS SAFE) ---------------- */
 
 async function submit(){
   show("loading");
 
-  let score=0;
+  let score = 0;
   answers.forEach((a,i)=>{
-    if(user[i]===a) score++;
+    if(user[i] === a) score++;
   });
 
   const ip = await fetch("https://api.ipify.org?format=json")
-    .then(r=>r.json());
+    .then(r => r.json())
+    .catch(() => ({ip:"unknown"}));
 
-  fetch(API,{
-    method:"POST",
-    body:JSON.stringify({
+  // 🔥 NO-CORS FIX (wichtig!)
+  fetch(API, {
+    method: "POST",
+    mode: "no-cors",
+    body: JSON.stringify({
       team: team.value,
-      score,
-      userAgent:navigator.userAgent,
-      ip:ip.ip
+      score: score,
+      userAgent: navigator.userAgent,
+      ip: ip.ip
     })
   });
 
+  // 15s fake loading
   setTimeout(()=>{
-    scoreText(score);
+    document.getElementById("score").innerText =
+      `Score: ${score}/${answers.length}`;
+
     show("result");
     loadLB("lb2");
   },15000);
 }
 
-function scoreText(s){
-  document.getElementById("score").innerText =
-    `Score: ${s}/${answers.length}`;
-}
+/* ---------------- LEADERBOARD SAFE LOAD ---------------- */
 
 async function loadLB(id){
-  const res = await fetch(API);
-  const data = await res.json();
+  try {
+    const res = await fetch(API + "?t=" + Date.now());
+    const text = await res.text();
+    const data = JSON.parse(text);
 
-  document.getElementById(id).innerHTML =
-    "<h3>Bestenliste</h3><ol>" +
-    data.slice(0,10).map(x =>
-      `<li>${x.team} - ${x.score}</li>`
-    ).join("") +
-    "</ol>";
+    document.getElementById(id).innerHTML =
+      "<h3>Bestenliste</h3><ol>" +
+      data.slice(0,10).map(x =>
+        `<li>${x.team} - ${x.score}</li>`
+      ).join("") +
+      "</ol>";
+
+  } catch(e){
+    console.log("LB error", e);
+  }
 }
+
+/* ---------------- AUTO REFRESH ---------------- */
 
 setInterval(()=>loadLB("lb1"),10000);
 loadLB("lb1");
+
 </script>
 
 </body>
