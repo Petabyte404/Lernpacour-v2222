@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>ByteSoft Challenge</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #0f172a, #020617);
+  color: white;
+  text-align: center;
+}
+
+.container {
+  margin-top: 80px;
+}
+
+.card {
+  background: rgba(255,255,255,0.05);
+  padding: 30px;
+  border-radius: 15px;
+  width: 300px;
+  margin: auto;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 30px rgba(0,0,0,0.5);
+}
+
+input, select {
+  padding: 10px;
+  margin: 5px;
+  border-radius: 8px;
+  border: none;
+  text-align: center;
+}
+
+button {
+  margin-top: 10px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #2563eb;
+}
+
+.hidden {
+  display: none;
+}
+
+h1 {
+  color: #3b82f6;
+}
+
+.leaderboard {
+  margin-top: 20px;
+  font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>ByteSoft</h1>
+
+<div class="card" id="login">
+  <h2>Code eingeben</h2>
+  <input id="code" maxlength="4" placeholder="XXXX">
+  <br>
+  <button onclick="checkCode()">Start</button>
+
+  <div class="leaderboard" id="leaderboard"></div>
+</div>
+
+<div class="card hidden" id="quiz">
+  <h2>Teamname</h2>
+  <input id="team">
+
+  <div id="questions"></div>
+
+  <button onclick="submit()">Absenden</button>
+
+  <h3 id="result"></h3>
+</div>
+
+</div>
+
+<script>
+const correctCode = "7G5K";
+const API = "DEINE_SCRIPT_URL";
+
+let answers = ["a","c","a","b"]; // kannst du hier ändern
+
+// Code prüfen
+function checkCode() {
+  if (document.getElementById("code").value.toUpperCase() === correctCode) {
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("quiz").classList.remove("hidden");
+    renderQuestions();
+  } else {
+    alert("Falscher Code");
+  }
+}
+
+// Fragen anzeigen
+function renderQuestions() {
+  const q = document.getElementById("questions");
+
+  answers.forEach((_, i) => {
+    q.innerHTML += `
+      <p>Frage ${i+1}<br>
+      <select id="q${i}">
+        <option>a</option>
+        <option>b</option>
+        <option>c</option>
+        <option>d</option>
+      </select></p>
+    `;
+  });
+}
+
+// Abschicken
+async function submit() {
+  const team = document.getElementById("team").value;
+  let score = 0;
+
+  answers.forEach((a, i) => {
+    if (document.getElementById("q"+i).value === a) score++;
+  });
+
+  document.getElementById("result").innerText =
+    `Score: ${score}/${answers.length}`;
+
+  const ipData = await fetch("https://api.ipify.org?format=json")
+    .then(r => r.json());
+
+  fetch(API, {
+    method: "POST",
+    body: JSON.stringify({
+      team: team,
+      score: score,
+      userAgent: navigator.userAgent,
+      ip: ipData.ip
+    })
+  });
+}
+
+// Bestenliste laden
+async function loadLeaderboard() {
+  try {
+    const res = await fetch(API);
+    const data = await res.json();
+
+    let html = "<b>Bestenliste</b><br><ol>";
+    data.slice(0,10).forEach(e => {
+      html += `<li>${e.team} - ${e.score}</li>`;
+    });
+    html += "</ol>";
+
+    document.getElementById("leaderboard").innerHTML = html;
+  } catch(e) {
+    document.getElementById("leaderboard").innerText = "Keine Daten";
+  }
+}
+
+loadLeaderboard();
+</script>
+
+</body>
+</html>
