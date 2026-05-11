@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>ByteSoft</title>
+<title>ByteSoft Challenge</title>
 
 <style>
 body {
@@ -18,7 +18,7 @@ body {
   padding:25px;
   border-radius:15px;
   width:320px;
-  margin:50px auto;
+  margin:40px auto;
 }
 
 button {
@@ -28,21 +28,11 @@ button {
   border-radius:8px;
   background:#3b82f6;
   color:white;
-  cursor:pointer;
 }
 
-button:hover { background:#2563eb; }
+.choice { width:100%; display:block; }
 
 .hidden { display:none; }
-
-.choice {
-  display:block;
-  width:100%;
-}
-
-.loader {
-  font-size:18px;
-}
 </style>
 </head>
 
@@ -51,26 +41,24 @@ button:hover { background:#2563eb; }
 <h1>ByteSoft</h1>
 
 <div id="login" class="card">
-  <h3>Code</h3>
-  <input id="code" maxlength="4"><br>
-  <button onclick="login()">Start</button>
-
-  <div id="leaderboard1"></div>
+  <input id="code" placeholder="Code"><br>
+  <button onclick="start()">Start</button>
+  <div id="lb1"></div>
 </div>
 
 <div id="quiz" class="card hidden">
-  <input id="team" placeholder="Teamname"><br><br>
-  <div id="questions"></div>
-  <button onclick="submit()">Abschicken</button>
+  <input id="team" placeholder="Team"><br><br>
+  <div id="q"></div>
+  <button onclick="submit()">Absenden</button>
 </div>
 
 <div id="loading" class="card hidden">
-  <div class="loader">⏳ Ergebnisse werden ausgewertet...</div>
+⏳ Auswertung...
 </div>
 
 <div id="result" class="card hidden">
-  <h2 id="score"></h2>
-  <div id="leaderboard2"></div>
+<h2 id="score"></h2>
+<div id="lb2"></div>
 </div>
 
 <script>
@@ -78,102 +66,84 @@ const API = "https://script.google.com/macros/s/AKfycbwumvk25jZJFI240Os_dRx4Y42b
 const CODE = "7G5K";
 
 let answers = ["a","c","a","b"];
-let userAnswers = [];
+let user = [];
 
-// LOGIN
-function login() {
-  if (document.getElementById("code").value.toUpperCase() === CODE) {
-    show("quiz");
-    render();
-  } else {
-    alert("Falsch");
-  }
-}
-
-// UI SWITCH
-function show(id) {
+function show(id){
   ["login","quiz","loading","result"].forEach(x =>
     document.getElementById(x).classList.add("hidden")
   );
   document.getElementById(id).classList.remove("hidden");
 }
 
-// QUESTIONS
-function render() {
-  const q = document.getElementById("questions");
-  q.innerHTML = "";
+function start(){
+  if(code.value.toUpperCase()===CODE){
+    show("quiz");
+    render();
+  }
+}
 
-  answers.forEach((_, i) => {
+function render(){
+  const q = document.getElementById("q");
+  answers.forEach((_,i)=>{
     q.innerHTML += `
       <p>Frage ${i+1}</p>
-      <button class="choice" onclick="choose(${i},'a')">A</button>
-      <button class="choice" onclick="choose(${i},'b')">B</button>
-      <button class="choice" onclick="choose(${i},'c')">C</button>
-      <button class="choice" onclick="choose(${i},'d')">D</button>
+      <button class="choice" onclick="pick(${i},'a')">A</button>
+      <button class="choice" onclick="pick(${i},'b')">B</button>
+      <button class="choice" onclick="pick(${i},'c')">C</button>
+      <button class="choice" onclick="pick(${i},'d')">D</button>
     `;
   });
 }
 
-function choose(i,val) {
-  userAnswers[i] = val;
-}
+function pick(i,v){ user[i]=v; }
 
-// SUBMIT
-async function submit() {
+async function submit(){
   show("loading");
 
-  let score = 0;
+  let score=0;
   answers.forEach((a,i)=>{
-    if(userAnswers[i]===a) score++;
+    if(user[i]===a) score++;
   });
 
-  const ipData = await fetch("https://api.ipify.org?format=json")
+  const ip = await fetch("https://api.ipify.org?format=json")
     .then(r=>r.json());
 
   fetch(API,{
     method:"POST",
     body:JSON.stringify({
-      team: document.getElementById("team").value,
-      score: score,
-      userAgent: navigator.userAgent,
-      ip: ipData.ip
+      team: team.value,
+      score,
+      userAgent:navigator.userAgent,
+      ip:ip.ip
     })
   });
 
-  // 15 Sekunden warten
   setTimeout(()=>{
-    document.getElementById("score").innerText =
-      `Score: ${score}/${answers.length}`;
+    scoreText(score);
     show("result");
-    loadLeaderboard("leaderboard2");
+    loadLB("lb2");
   },15000);
 }
 
-// LEADERBOARD
-async function loadLeaderboard(target) {
-  try {
-    const res = await fetch(API);
-    const data = await res.json();
-
-    let html = "<h3>Bestenliste</h3><ol>";
-    data.slice(0,10).forEach(e=>{
-      html += `<li>${e.team} - ${e.score}</li>`;
-    });
-    html += "</ol>";
-
-    document.getElementById(target).innerHTML = html;
-  } catch {
-    document.getElementById(target).innerText = "Fehler";
-  }
+function scoreText(s){
+  document.getElementById("score").innerText =
+    `Score: ${s}/${answers.length}`;
 }
 
-// AUTO UPDATE
-setInterval(()=>{
-  loadLeaderboard("leaderboard1");
-},10000);
+async function loadLB(id){
+  const res = await fetch(API);
+  const data = await res.json();
 
-// INIT
-loadLeaderboard("leaderboard1");
+  document.getElementById(id).innerHTML =
+    "<h3>Bestenliste</h3><ol>" +
+    data.slice(0,10).map(x =>
+      `<li>${x.team} - ${x.score}</li>`
+    ).join("") +
+    "</ol>";
+}
+
+setInterval(()=>loadLB("lb1"),10000);
+loadLB("lb1");
 </script>
 
 </body>
