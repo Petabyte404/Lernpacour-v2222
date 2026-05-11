@@ -2,175 +2,178 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>lernpacour</title>
+<title>ByteSoft</title>
 
 <style>
 body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #0f172a, #020617);
-  color: white;
-  text-align: center;
-}
-
-.container {
-  margin-top: 80px;
+  margin:0;
+  font-family: Arial;
+  background:#020617;
+  color:white;
+  text-align:center;
 }
 
 .card {
-  background: rgba(255,255,255,0.05);
-  padding: 30px;
-  border-radius: 15px;
-  width: 300px;
-  margin: auto;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 0 30px rgba(0,0,0,0.5);
-}
-
-input, select {
-  padding: 10px;
-  margin: 5px;
-  border-radius: 8px;
-  border: none;
-  text-align: center;
+  background:rgba(255,255,255,0.05);
+  padding:25px;
+  border-radius:15px;
+  width:320px;
+  margin:50px auto;
 }
 
 button {
-  margin-top: 10px;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 10px;
-  background: #3b82f6;
-  color: white;
-  cursor: pointer;
+  padding:10px;
+  margin:5px;
+  border:none;
+  border-radius:8px;
+  background:#3b82f6;
+  color:white;
+  cursor:pointer;
 }
 
-button:hover {
-  background: #2563eb;
+button:hover { background:#2563eb; }
+
+.hidden { display:none; }
+
+.choice {
+  display:block;
+  width:100%;
 }
 
-.hidden {
-  display: none;
-}
-
-h1 {
-  color: #3b82f6;
-}
-
-.leaderboard {
-  margin-top: 20px;
-  font-size: 14px;
+.loader {
+  font-size:18px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
-
 <h1>ByteSoft</h1>
 
-<div class="card" id="login">
-  <h2>Code eingeben</h2>
-  <input id="code" maxlength="4" placeholder="XXXX">
-  <br>
-  <button onclick="checkCode()">Start</button>
+<div id="login" class="card">
+  <h3>Code</h3>
+  <input id="code" maxlength="4"><br>
+  <button onclick="login()">Start</button>
 
-  <div class="leaderboard" id="leaderboard"></div>
+  <div id="leaderboard1"></div>
 </div>
 
-<div class="card hidden" id="quiz">
-  <h2>Teamname</h2>
-  <input id="team">
-
+<div id="quiz" class="card hidden">
+  <input id="team" placeholder="Teamname"><br><br>
   <div id="questions"></div>
-
-  <button onclick="submit()">Absenden</button>
-
-  <h3 id="result"></h3>
+  <button onclick="submit()">Abschicken</button>
 </div>
 
+<div id="loading" class="card hidden">
+  <div class="loader">⏳ Ergebnisse werden ausgewertet...</div>
+</div>
+
+<div id="result" class="card hidden">
+  <h2 id="score"></h2>
+  <div id="leaderboard2"></div>
 </div>
 
 <script>
-const correctCode = "7G5K";
-const API = "https://script.google.com/macros/s/AKfycbwumvk25jZJFI240Os_dRx4Y42b1E2BIBxk8fHcjtOcQS1-ZpP0uYW3TXcwcWVe1mA77g/exec";
+const API = "DEINE_SCRIPT_URL";
+const CODE = "7G5K";
 
-let answers = ["a","c","a","b"]; // kannst du hier ändern
+let answers = ["a","c","a","b"];
+let userAnswers = [];
 
-// Code prüfen
-function checkCode() {
-  if (document.getElementById("code").value.toUpperCase() === correctCode) {
-    document.getElementById("login").classList.add("hidden");
-    document.getElementById("quiz").classList.remove("hidden");
-    renderQuestions();
+// LOGIN
+function login() {
+  if (document.getElementById("code").value.toUpperCase() === CODE) {
+    show("quiz");
+    render();
   } else {
-    alert("Falscher Code");
+    alert("Falsch");
   }
 }
 
-// Fragen anzeigen
-function renderQuestions() {
+// UI SWITCH
+function show(id) {
+  ["login","quiz","loading","result"].forEach(x =>
+    document.getElementById(x).classList.add("hidden")
+  );
+  document.getElementById(id).classList.remove("hidden");
+}
+
+// QUESTIONS
+function render() {
   const q = document.getElementById("questions");
+  q.innerHTML = "";
 
   answers.forEach((_, i) => {
     q.innerHTML += `
-      <p>Frage ${i+1}<br>
-      <select id="q${i}">
-        <option>a</option>
-        <option>b</option>
-        <option>c</option>
-        <option>d</option>
-      </select></p>
+      <p>Frage ${i+1}</p>
+      <button class="choice" onclick="choose(${i},'a')">A</button>
+      <button class="choice" onclick="choose(${i},'b')">B</button>
+      <button class="choice" onclick="choose(${i},'c')">C</button>
+      <button class="choice" onclick="choose(${i},'d')">D</button>
     `;
   });
 }
 
-// Abschicken
-async function submit() {
-  const team = document.getElementById("team").value;
-  let score = 0;
+function choose(i,val) {
+  userAnswers[i] = val;
+}
 
-  answers.forEach((a, i) => {
-    if (document.getElementById("q"+i).value === a) score++;
+// SUBMIT
+async function submit() {
+  show("loading");
+
+  let score = 0;
+  answers.forEach((a,i)=>{
+    if(userAnswers[i]===a) score++;
   });
 
-  document.getElementById("result").innerText =
-    `Score: ${score}/${answers.length}`;
-
   const ipData = await fetch("https://api.ipify.org?format=json")
-    .then(r => r.json());
+    .then(r=>r.json());
 
-  fetch(API, {
-    method: "POST",
-    body: JSON.stringify({
-      team: team,
+  fetch(API,{
+    method:"POST",
+    body:JSON.stringify({
+      team: document.getElementById("team").value,
       score: score,
       userAgent: navigator.userAgent,
       ip: ipData.ip
     })
   });
+
+  // 15 Sekunden warten
+  setTimeout(()=>{
+    document.getElementById("score").innerText =
+      `Score: ${score}/${answers.length}`;
+    show("result");
+    loadLeaderboard("leaderboard2");
+  },15000);
 }
 
-// Bestenliste laden
-async function loadLeaderboard() {
+// LEADERBOARD
+async function loadLeaderboard(target) {
   try {
     const res = await fetch(API);
     const data = await res.json();
 
-    let html = "<b>Bestenliste</b><br><ol>";
-    data.slice(0,10).forEach(e => {
+    let html = "<h3>Bestenliste</h3><ol>";
+    data.slice(0,10).forEach(e=>{
       html += `<li>${e.team} - ${e.score}</li>`;
     });
     html += "</ol>";
 
-    document.getElementById("leaderboard").innerHTML = html;
-  } catch(e) {
-    document.getElementById("leaderboard").innerText = "Keine Daten";
+    document.getElementById(target).innerHTML = html;
+  } catch {
+    document.getElementById(target).innerText = "Fehler";
   }
 }
 
-loadLeaderboard();
+// AUTO UPDATE
+setInterval(()=>{
+  loadLeaderboard("leaderboard1");
+},10000);
+
+// INIT
+loadLeaderboard("leaderboard1");
 </script>
 
 </body>
