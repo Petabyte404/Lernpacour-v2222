@@ -26,13 +26,13 @@ body{
 input{
   width:90%;
   padding:10px;
-  border-radius:8px;
   border:none;
+  border-radius:8px;
+  margin:8px 0;
 }
 
 button{
   width:100%;
-  margin-top:10px;
   padding:10px;
   border:none;
   border-radius:8px;
@@ -60,27 +60,22 @@ button{
 
 <div id="quiz" class="card hidden">
   <input id="team" placeholder="Teamname">
-  <div id="q"></div>
-  <button onclick="submitQuiz()">Absenden</button>
-</div>
 
-<div id="loading" class="card hidden">
-  ⏳ Wird gesendet...
+  <div id="q"></div>
+
+  <button onclick="submitQuiz()">Absenden</button>
 </div>
 
 <div id="result" class="card hidden">
   <h2 id="score"></h2>
-  <div id="lb"></div>
 </div>
 
 <script>
 
 /* ================= CONFIG ================= */
 
-const API = "https://script.google.com/macros/s/AKfycbzuzNovDynOk-6-vPQDCe5Fhio8OMRxGBXe44UZv81laRefPxPTG0Ym6e6xEAOF9DDT9w/exec";
+const WEBHOOK = "DEIN_DISCORD_WEBHOOK_HIER";
 const CODE = "TEST";
-
-/* ================= QUIZ ================= */
 
 const answers = ["a","c","a","b"];
 let user = [];
@@ -88,7 +83,7 @@ let user = [];
 /* ================= UI ================= */
 
 function show(id){
-  ["login","quiz","loading","result"].forEach(x=>{
+  ["login","quiz","result"].forEach(x=>{
     document.getElementById(x).classList.add("hidden");
   });
   document.getElementById(id).classList.remove("hidden");
@@ -106,7 +101,7 @@ function start(){
   render();
 }
 
-/* ================= QUESTIONS ================= */
+/* ================= QUIZ ================= */
 
 function render(){
 
@@ -134,11 +129,36 @@ function pick(i,v){
   user[i] = v;
 }
 
+/* ================= DISCORD SEND ================= */
+
+async function sendDiscord(team, score){
+
+  const payload = {
+    content: "📊 Neues Quiz Ergebnis",
+    embeds: [{
+      title: "ByteSoft Quiz",
+      color: 5814783,
+      fields: [
+        { name: "Team", value: team || "Unknown", inline: true },
+        { name: "Score", value: String(score), inline: true },
+        { name: "Zeit", value: new Date().toLocaleString(), inline: false }
+      ]
+    }]
+  };
+
+  await fetch(WEBHOOK, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+}
+
 /* ================= SUBMIT ================= */
 
 async function submitQuiz(){
-
-  show("loading");
 
   let score = 0;
 
@@ -146,55 +166,16 @@ async function submitQuiz(){
     if(user[i] === a) score++;
   });
 
-  try {
+  document.getElementById("score").innerText =
+    `Score: ${score}/${answers.length}`;
 
-    const form = new FormData();
-    form.append("team", document.getElementById("team").value || "Unknown");
-    form.append("score", score);
-    form.append("userAgent", navigator.userAgent);
-    form.append("ip", "hidden");
+  show("result");
 
-    await fetch(API, {
-      method: "POST",
-      body: form
-    });
-
-  } catch(e){
-    console.log(e);
-  }
-
-  setTimeout(()=>{
-    document.getElementById("score").innerText =
-      `Score: ${score}/${answers.length}`;
-
-    show("result");
-
-    loadLB();
-  },1500);
+  await sendDiscord(
+    team.value,
+    score
+  );
 }
-
-/* ================= LEADERBOARD ================= */
-
-async function loadLB(){
-
-  try {
-
-    const res = await fetch(API);
-    const data = await res.json();
-
-    document.getElementById("lb").innerHTML =
-      "<h3>🏆 Leaderboard</h3><ol>" +
-      data.slice(0,10).map(x =>
-        `<li>${x.team} - ${x.score}</li>`
-      ).join("") +
-      "</ol>";
-
-  } catch(e){
-    console.log("LB error", e);
-  }
-}
-
-setInterval(loadLB,10000);
 
 </script>
 
