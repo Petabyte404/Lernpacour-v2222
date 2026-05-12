@@ -1,7 +1,9 @@
-```html
+```html id="0rj9ms"
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -68,6 +70,7 @@ ol{
 }
 
 </style>
+
 </head>
 
 <body>
@@ -130,11 +133,11 @@ ol{
 
 /* ---------------- CONFIG ---------------- */
 
-const API = "https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnQt5ceoLI-n_ulnEMnx6lG9FFhBjTxjavrWju3mCWrsVeM1bJvkTWfpUIjHLXrMqhjgRmk21kDnGL3BtPqM_nLUZIZfCFsUHLSXPoSuxXWmYScOKRigxg737fOZbOYV_kQUURsAMsWsfspzoHNl409KftnJa8e0cA9eJiNMqTi_Qt3J7DC0JMCe9b1RoLDFrxvD-G5hue-l31fL0ndZYDgJNBVSzhg_u_Ft5ANOZMlAstySt8VcetbQEAv5DEdvSSbP1qfBJwue9DLK4I2Onseix9UD9w&lib=MR60oUU3rcLbcjKPNb56mg9EQ0SyTzERK";
+const API = "DEINE_GOOGLEUSERCONTENT_URL_HIER";
 
 const CODE = "TEST";
 
-/* Richtige Antworten */
+/* ---------------- QUIZ DATEN ---------------- */
 
 const answers = [
   "a",
@@ -142,8 +145,6 @@ const answers = [
   "a",
   "b"
 ];
-
-/* Fragen */
 
 const questions = [
 
@@ -188,7 +189,7 @@ function show(id){
 }
 
 
-/* ---------------- START ---------------- */
+/* ---------------- LOGIN ---------------- */
 
 function start(){
 
@@ -205,7 +206,7 @@ function start(){
 }
 
 
-/* ---------------- RENDER ---------------- */
+/* ---------------- FRAGEN ---------------- */
 
 function renderQuestions(){
 
@@ -258,7 +259,7 @@ function renderQuestions(){
 }
 
 
-/* ---------------- PICK ---------------- */
+/* ---------------- ANTWORT ---------------- */
 
 function pick(i,v){
 
@@ -278,34 +279,25 @@ async function submitQuiz(){
   answers.forEach((a,i)=>{
 
     if(userAnswers[i] === a){
-
       score++;
-
     }
 
   });
 
   try {
 
+    const form = new FormData();
+
+    form.append("team", team.value || "Unknown");
+    form.append("score", score);
+    form.append("userAgent", navigator.userAgent);
+    form.append("ip", "hidden");
+
     await fetch(API, {
 
       method:"POST",
 
-      headers:{
-        "Content-Type":"application/json"
-      },
-
-      body: JSON.stringify({
-
-        team: team.value || "Unknown",
-
-        score: score,
-
-        userAgent: navigator.userAgent,
-
-        ip: "hidden"
-
-      })
+      body: form
 
     });
 
@@ -317,8 +309,8 @@ async function submitQuiz(){
 
   setTimeout(()=>{
 
-    document.getElementById("score")
-      .innerText = `Score: ${score}/${answers.length}`;
+    document.getElementById("score").innerText =
+      `Score: ${score}/${answers.length}`;
 
     show("result");
 
