@@ -1,16 +1,12 @@
-```html id="0rj9ms"
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>ByteSoft Quiz</title>
 
 <style>
-
 body{
   margin:0;
   font-family:Arial;
@@ -19,256 +15,126 @@ body{
   text-align:center;
 }
 
-h1{
-  margin-top:40px;
-}
-
 .card{
-  width:350px;
+  width:360px;
   margin:30px auto;
+  padding:20px;
   background:rgba(255,255,255,0.05);
-  padding:25px;
-  border-radius:18px;
-  backdrop-filter:blur(10px);
+  border-radius:15px;
 }
 
 input{
   width:90%;
-  padding:12px;
-  margin:10px 0;
+  padding:10px;
+  border-radius:8px;
   border:none;
-  border-radius:10px;
-  outline:none;
 }
 
 button{
   width:100%;
-  padding:12px;
   margin-top:10px;
+  padding:10px;
   border:none;
-  border-radius:10px;
+  border-radius:8px;
   background:#3b82f6;
   color:white;
   cursor:pointer;
-  font-size:16px;
 }
 
-button:hover{
-  opacity:0.9;
-}
+.hidden{ display:none; }
 
 .choice{
-  margin:8px 0;
+  margin:5px 0;
 }
-
-.hidden{
-  display:none;
-}
-
-ol{
-  text-align:left;
-}
-
 </style>
-
 </head>
 
 <body>
 
-<h1>🚀 ByteSoft Quiz</h1>
-
-<!-- LOGIN -->
+<h1>ByteSoft Quiz</h1>
 
 <div id="login" class="card">
-
-  <h2>Login</h2>
-
-  <input id="code" placeholder="Code eingeben">
-
-  <button onclick="start()">
-    Start
-  </button>
-
-  <div id="lb1"></div>
-
+  <input id="code" placeholder="Code">
+  <button onclick="start()">Start</button>
 </div>
-
-
-<!-- QUIZ -->
 
 <div id="quiz" class="card hidden">
-
   <input id="team" placeholder="Teamname">
-
   <div id="q"></div>
-
-  <button onclick="submitQuiz()">
-    Absenden
-  </button>
-
+  <button onclick="submitQuiz()">Absenden</button>
 </div>
-
-
-<!-- LOADING -->
 
 <div id="loading" class="card hidden">
-
-  <h2>⏳ Wird ausgewertet...</h2>
-
+  ⏳ Wird gesendet...
 </div>
-
-
-<!-- RESULT -->
 
 <div id="result" class="card hidden">
-
   <h2 id="score"></h2>
-
-  <div id="lb2"></div>
-
+  <div id="lb"></div>
 </div>
-
 
 <script>
 
-/* ---------------- CONFIG ---------------- */
+/* ================= CONFIG ================= */
 
-const API = "https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnQt5ceoLI-n_ulnEMnx6lG9FFhBjTxjavrWju3mCWrsVeM1bJvkTWfpUIjHLXrMqhjgRmk21kDnGL3BtPqM_nLUZIZfCFsUHLSXPoSuxXWmYScOKRigxg737fOZbOYV_kQUURsAMsWsfspzoHNl409KftnJa8e0cA9eJiNMqTi_Qt3J7DC0JMCe9b1RoLDFrxvD-G5hue-l31fL0ndZYDgJNBVSzhg_u_Ft5ANOZMlAstySt8VcetbQEAv5DEdvSSbP1qfBJwue9DLK4I2Onseix9UD9w&lib=MR60oUU3rcLbcjKPNb56mg9EQ0SyTzERK";
-
+const API = "https://script.google.com/macros/s/AKfycbzuzNovDynOk-6-vPQDCe5Fhio8OMRxGBXe44UZv81laRefPxPTG0Ym6e6xEAOF9DDT9w/exec";
 const CODE = "TEST";
 
-/* ---------------- QUIZ DATEN ---------------- */
+/* ================= QUIZ ================= */
 
-const answers = [
-  "a",
-  "c",
-  "a",
-  "b"
-];
+const answers = ["a","c","a","b"];
+let user = [];
 
-const questions = [
-
-  {
-    q:"Was ist 2 + 2 ?",
-    a:["3","4","5","6"]
-  },
-
-  {
-    q:"Welche Farbe hat der Himmel?",
-    a:["Grün","Rot","Blau","Gelb"]
-  },
-
-  {
-    q:"Welcher Buchstabe kommt zuerst?",
-    a:["A","Z","X","Q"]
-  },
-
-  {
-    q:"Wie viele Tage hat eine Woche?",
-    a:["5","7","9","12"]
-  }
-
-];
-
-let userAnswers = [];
-
-
-/* ---------------- UI ---------------- */
+/* ================= UI ================= */
 
 function show(id){
-
   ["login","quiz","loading","result"].forEach(x=>{
-
-    document.getElementById(x)
-      .classList.add("hidden");
-
+    document.getElementById(x).classList.add("hidden");
   });
-
-  document.getElementById(id)
-    .classList.remove("hidden");
+  document.getElementById(id).classList.remove("hidden");
 }
 
-
-/* ---------------- LOGIN ---------------- */
+/* ================= START ================= */
 
 function start(){
-
   if(code.value.toUpperCase() !== CODE){
-
     alert("Falscher Code");
     return;
-
   }
 
   show("quiz");
-
-  renderQuestions();
+  render();
 }
 
+/* ================= QUESTIONS ================= */
 
-/* ---------------- FRAGEN ---------------- */
-
-function renderQuestions(){
+function render(){
 
   const q = document.getElementById("q");
-
   q.innerHTML = "";
 
-  questions.forEach((item,index)=>{
+  answers.forEach((_,i)=>{
 
     q.innerHTML += `
-
       <div>
+        <p>Frage ${i+1}</p>
 
-        <h3>${item.q}</h3>
-
-        <button class="choice"
-          onclick="pick(${index},'a')">
-
-          A) ${item.a[0]}
-
-        </button>
-
-        <button class="choice"
-          onclick="pick(${index},'b')">
-
-          B) ${item.a[1]}
-
-        </button>
-
-        <button class="choice"
-          onclick="pick(${index},'c')">
-
-          C) ${item.a[2]}
-
-        </button>
-
-        <button class="choice"
-          onclick="pick(${index},'d')">
-
-          D) ${item.a[3]}
-
-        </button>
-
+        <button class="choice" onclick="pick(${i},'a')">A</button>
+        <button class="choice" onclick="pick(${i},'b')">B</button>
+        <button class="choice" onclick="pick(${i},'c')">C</button>
+        <button class="choice" onclick="pick(${i},'d')">D</button>
       </div>
-
     `;
-
   });
-
 }
 
-
-/* ---------------- ANTWORT ---------------- */
+/* ================= PICK ================= */
 
 function pick(i,v){
-
-  userAnswers[i] = v;
-
+  user[i] = v;
 }
 
-
-/* ---------------- SUBMIT ---------------- */
+/* ================= SUBMIT ================= */
 
 async function submitQuiz(){
 
@@ -277,95 +143,60 @@ async function submitQuiz(){
   let score = 0;
 
   answers.forEach((a,i)=>{
-
-    if(userAnswers[i] === a){
-      score++;
-    }
-
+    if(user[i] === a) score++;
   });
 
   try {
 
     const form = new FormData();
-
-    form.append("team", team.value || "Unknown");
+    form.append("team", document.getElementById("team").value || "Unknown");
     form.append("score", score);
     form.append("userAgent", navigator.userAgent);
     form.append("ip", "hidden");
 
     await fetch(API, {
-
-      method:"POST",
-
+      method: "POST",
       body: form
-
     });
 
-  } catch(err){
-
-    console.log(err);
-
+  } catch(e){
+    console.log(e);
   }
 
   setTimeout(()=>{
-
     document.getElementById("score").innerText =
       `Score: ${score}/${answers.length}`;
 
     show("result");
 
-    loadLeaderboard("lb2");
-
-  },2000);
-
+    loadLB();
+  },1500);
 }
 
+/* ================= LEADERBOARD ================= */
 
-/* ---------------- LEADERBOARD ---------------- */
-
-async function loadLeaderboard(id){
+async function loadLB(){
 
   try {
 
     const res = await fetch(API);
-
     const data = await res.json();
 
-    document.getElementById(id).innerHTML =
-
-      "<h3>🏆 Bestenliste</h3><ol>" +
-
+    document.getElementById("lb").innerHTML =
+      "<h3>🏆 Leaderboard</h3><ol>" +
       data.slice(0,10).map(x =>
-
         `<li>${x.team} - ${x.score}</li>`
-
-      ).join("")
-
-      +
-
+      ).join("") +
       "</ol>";
 
-  } catch(err){
-
-    console.log("Leaderboard Error",err);
-
+  } catch(e){
+    console.log("LB error", e);
   }
-
 }
 
-
-/* ---------------- AUTO LOAD ---------------- */
-
-loadLeaderboard("lb1");
-
-setInterval(()=>{
-
-  loadLeaderboard("lb1");
-
-},10000);
+setInterval(loadLB,10000);
 
 </script>
 
 </body>
 </html>
-```
