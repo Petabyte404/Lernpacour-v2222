@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -7,65 +8,145 @@
 <title>ByteSoft Quiz</title>
 
 <style>
+
+/* ================= BASE ================= */
+
 body{
   margin:0;
-  font-family:Arial;
-  background:#020617;
+  font-family: system-ui, Arial;
+  background: radial-gradient(circle at top, #0b1020, #020617);
   color:white;
   text-align:center;
+  overflow-x:hidden;
 }
 
-.card{
-  width:360px;
-  margin:30px auto;
-  padding:20px;
-  background:rgba(255,255,255,0.05);
-  border-radius:15px;
+h1{
+  margin-top:40px;
+  font-size:2.2rem;
+  letter-spacing:1px;
 }
+
+/* ================= CARD ================= */
+
+.card{
+  width:380px;
+  margin:30px auto;
+  padding:25px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius:18px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  animation: fadeIn 0.6s ease;
+}
+
+/* ================= INPUT ================= */
 
 input{
   width:90%;
-  padding:10px;
+  padding:12px;
+  border-radius:10px;
   border:none;
-  border-radius:8px;
-  margin:8px 0;
+  outline:none;
+  margin:10px 0;
 }
+
+/* ================= BUTTON ================= */
 
 button{
   width:100%;
-  padding:10px;
+  padding:12px;
   border:none;
-  border-radius:8px;
-  background:#3b82f6;
+  border-radius:10px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color:white;
+  font-size:15px;
   cursor:pointer;
+  transition:0.2s;
 }
+
+button:hover{
+  transform: scale(1.02);
+}
+
+/* ================= QUIZ OPTIONS ================= */
+
+.choice{
+  width:100%;
+  margin:10px 0;
+  padding:14px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  cursor:pointer;
+  transition: all 0.25s ease;
+  position:relative;
+  overflow:hidden;
+}
+
+/* hover effect */
+.choice:hover{
+  transform: translateY(-2px);
+  background: rgba(59,130,246,0.2);
+}
+
+/* selected state (GEILER POP EFFECT) */
+.choice.selected{
+  transform: translateY(-6px) scale(1.02);
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  box-shadow: 0 10px 25px rgba(59,130,246,0.4);
+  border: 1px solid rgba(59,130,246,0.8);
+}
+
+/* glow animation */
+.choice.selected::after{
+  content:"";
+  position:absolute;
+  top:0;
+  left:-100%;
+  width:100%;
+  height:100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: shine 1s infinite;
+}
+
+/* ================= HIDE ================= */
 
 .hidden{ display:none; }
 
-.choice{
-  margin:5px 0;
+/* ================= ANIMATIONS ================= */
+
+@keyframes fadeIn{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
 }
+
+@keyframes shine{
+  0%{ left:-100%; }
+  100%{ left:100%; }
+}
+
 </style>
 </head>
 
 <body>
 
-<h1>ByteSoft Quiz</h1>
+<h1>🚀 ByteSoft Quiz</h1>
 
+<!-- LOGIN -->
 <div id="login" class="card">
   <input id="code" placeholder="Code">
   <button onclick="start()">Start</button>
 </div>
 
+<!-- QUIZ -->
 <div id="quiz" class="card hidden">
   <input id="team" placeholder="Teamname">
-
   <div id="q"></div>
-
   <button onclick="submitQuiz()">Absenden</button>
 </div>
 
+<!-- RESULT -->
 <div id="result" class="card hidden">
   <h2 id="score"></h2>
 </div>
@@ -74,7 +155,7 @@ button{
 
 /* ================= CONFIG ================= */
 
-const WEBHOOK = "DEIN_DISCORD_WEBHOOK_HIER";
+const WEBHOOK = "DEIN_DISCORD_WEBHOOK";
 const CODE = "TEST";
 
 const answers = ["a","c","a","b"];
@@ -96,12 +177,11 @@ function start(){
     alert("Falscher Code");
     return;
   }
-
   show("quiz");
   render();
 }
 
-/* ================= QUIZ ================= */
+/* ================= RENDER ================= */
 
 function render(){
 
@@ -111,46 +191,54 @@ function render(){
   answers.forEach((_,i)=>{
 
     q.innerHTML += `
-      <div>
+      <div style="margin-bottom:18px">
         <p>Frage ${i+1}</p>
 
-        <button class="choice" onclick="pick(${i},'a')">A</button>
-        <button class="choice" onclick="pick(${i},'b')">B</button>
-        <button class="choice" onclick="pick(${i},'c')">C</button>
-        <button class="choice" onclick="pick(${i},'d')">D</button>
+        <div class="choice" onclick="pick(this,${i},'a')">A</div>
+        <div class="choice" onclick="pick(this,${i},'b')">B</div>
+        <div class="choice" onclick="pick(this,${i},'c')">C</div>
+        <div class="choice" onclick="pick(this,${i},'d')">D</div>
       </div>
     `;
   });
 }
 
-/* ================= PICK ================= */
+/* ================= PICK (ANIMATION LOGIC) ================= */
 
-function pick(i,v){
+function pick(el,i,v){
+
   user[i] = v;
+
+  // remove old selection in same question
+  const parent = el.parentElement;
+  parent.querySelectorAll(".choice").forEach(c=>{
+    c.classList.remove("selected");
+  });
+
+  // add animation class
+  el.classList.add("selected");
 }
 
-/* ================= DISCORD SEND ================= */
+/* ================= DISCORD ================= */
 
 async function sendDiscord(team, score){
 
   const payload = {
-    content: "📊 Neues Quiz Ergebnis",
+    content: "📊 Quiz Ergebnis",
     embeds: [{
       title: "ByteSoft Quiz",
-      color: 5814783,
+      color: 3447003,
       fields: [
-        { name: "Team", value: team || "Unknown", inline: true },
-        { name: "Score", value: String(score), inline: true },
-        { name: "Zeit", value: new Date().toLocaleString(), inline: false }
+        { name:"Team", value: team || "Unknown", inline:true },
+        { name:"Score", value: String(score), inline:true },
+        { name:"Zeit", value: new Date().toLocaleString(), inline:false }
       ]
     }]
   };
 
-  await fetch(WEBHOOK, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+  await fetch(WEBHOOK,{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
     body: JSON.stringify(payload)
   });
 
@@ -171,13 +259,11 @@ async function submitQuiz(){
 
   show("result");
 
-  await sendDiscord(
-    team.value,
-    score
-  );
+  await sendDiscord(team.value, score);
 }
 
 </script>
 
 </body>
 </html>
+```
