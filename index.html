@@ -1,183 +1,379 @@
+```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>ByteSoft Challenge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ByteSoft Quiz</title>
 
 <style>
-body {
+
+body{
   margin:0;
-  font-family: Arial;
+  font-family:Arial;
   background:#020617;
   color:white;
   text-align:center;
 }
 
-.card {
-  background:rgba(255,255,255,0.05);
-  padding:25px;
-  border-radius:15px;
-  width:340px;
-  margin:40px auto;
+h1{
+  margin-top:40px;
 }
 
-button {
-  padding:10px;
-  margin:5px;
+.card{
+  width:350px;
+  margin:30px auto;
+  background:rgba(255,255,255,0.05);
+  padding:25px;
+  border-radius:18px;
+  backdrop-filter:blur(10px);
+}
+
+input{
+  width:90%;
+  padding:12px;
+  margin:10px 0;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
+  outline:none;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:10px;
   background:#3b82f6;
   color:white;
   cursor:pointer;
+  font-size:16px;
 }
 
-.choice {
-  width:100%;
-  display:block;
+button:hover{
+  opacity:0.9;
 }
 
-.hidden { display:none; }
-
-.loader {
-  font-size:18px;
+.choice{
+  margin:8px 0;
 }
+
+.hidden{
+  display:none;
+}
+
+ol{
+  text-align:left;
+}
+
 </style>
 </head>
 
 <body>
 
-<h1>ByteSoft</h1>
+<h1>🚀 ByteSoft Quiz</h1>
+
+<!-- LOGIN -->
 
 <div id="login" class="card">
-  <input id="code" placeholder="Code"><br>
-  <button onclick="start()">Start</button>
+
+  <h2>Login</h2>
+
+  <input id="code" placeholder="Code eingeben">
+
+  <button onclick="start()">
+    Start
+  </button>
 
   <div id="lb1"></div>
+
 </div>
+
+
+<!-- QUIZ -->
 
 <div id="quiz" class="card hidden">
-  <input id="team" placeholder="Team"><br><br>
+
+  <input id="team" placeholder="Teamname">
+
   <div id="q"></div>
-  <button onclick="submit()">Absenden</button>
+
+  <button onclick="submitQuiz()">
+    Absenden
+  </button>
+
 </div>
+
+
+<!-- LOADING -->
 
 <div id="loading" class="card hidden">
-⏳ Ergebnisse werden ausgewertet...
+
+  <h2>⏳ Wird ausgewertet...</h2>
+
 </div>
 
+
+<!-- RESULT -->
+
 <div id="result" class="card hidden">
-<h2 id="score"></h2>
-<div id="lb2"></div>
+
+  <h2 id="score"></h2>
+
+  <div id="lb2"></div>
+
 </div>
+
 
 <script>
 
+/* ---------------- CONFIG ---------------- */
+
 const API = "https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnQt5ceoLI-n_ulnEMnx6lG9FFhBjTxjavrWju3mCWrsVeM1bJvkTWfpUIjHLXrMqhjgRmk21kDnGL3BtPqM_nLUZIZfCFsUHLSXPoSuxXWmYScOKRigxg737fOZbOYV_kQUURsAMsWsfspzoHNl409KftnJa8e0cA9eJiNMqTi_Qt3J7DC0JMCe9b1RoLDFrxvD-G5hue-l31fL0ndZYDgJNBVSzhg_u_Ft5ANOZMlAstySt8VcetbQEAv5DEdvSSbP1qfBJwue9DLK4I2Onseix9UD9w&lib=MR60oUU3rcLbcjKPNb56mg9EQ0SyTzERK";
+
 const CODE = "TEST";
 
-const answers = ["a","c","a","b"];
-let user = [];
+/* Richtige Antworten */
+
+const answers = [
+  "a",
+  "c",
+  "a",
+  "b"
+];
+
+/* Fragen */
+
+const questions = [
+
+  {
+    q:"Was ist 2 + 2 ?",
+    a:["3","4","5","6"]
+  },
+
+  {
+    q:"Welche Farbe hat der Himmel?",
+    a:["Grün","Rot","Blau","Gelb"]
+  },
+
+  {
+    q:"Welcher Buchstabe kommt zuerst?",
+    a:["A","Z","X","Q"]
+  },
+
+  {
+    q:"Wie viele Tage hat eine Woche?",
+    a:["5","7","9","12"]
+  }
+
+];
+
+let userAnswers = [];
+
 
 /* ---------------- UI ---------------- */
 
 function show(id){
-  ["login","quiz","loading","result"].forEach(x =>
-    document.getElementById(x).classList.add("hidden")
-  );
-  document.getElementById(id).classList.remove("hidden");
+
+  ["login","quiz","loading","result"].forEach(x=>{
+
+    document.getElementById(x)
+      .classList.add("hidden");
+
+  });
+
+  document.getElementById(id)
+    .classList.remove("hidden");
 }
 
-/* ---------------- LOGIN ---------------- */
+
+/* ---------------- START ---------------- */
 
 function start(){
-  if(code.value.toUpperCase() === CODE){
-    show("quiz");
-    render();
-  } else alert("Falsch");
+
+  if(code.value.toUpperCase() !== CODE){
+
+    alert("Falscher Code");
+    return;
+
+  }
+
+  show("quiz");
+
+  renderQuestions();
 }
 
-/* ---------------- QUIZ ---------------- */
 
-function render(){
+/* ---------------- RENDER ---------------- */
+
+function renderQuestions(){
+
   const q = document.getElementById("q");
 
-  answers.forEach((_,i)=>{
+  q.innerHTML = "";
+
+  questions.forEach((item,index)=>{
+
     q.innerHTML += `
-      <p>Frage ${i+1}</p>
-      <button class="choice" onclick="pick(${i},'a')">A</button>
-      <button class="choice" onclick="pick(${i},'b')">B</button>
-      <button class="choice" onclick="pick(${i},'c')">C</button>
-      <button class="choice" onclick="pick(${i},'d')">D</button>
+
+      <div>
+
+        <h3>${item.q}</h3>
+
+        <button class="choice"
+          onclick="pick(${index},'a')">
+
+          A) ${item.a[0]}
+
+        </button>
+
+        <button class="choice"
+          onclick="pick(${index},'b')">
+
+          B) ${item.a[1]}
+
+        </button>
+
+        <button class="choice"
+          onclick="pick(${index},'c')">
+
+          C) ${item.a[2]}
+
+        </button>
+
+        <button class="choice"
+          onclick="pick(${index},'d')">
+
+          D) ${item.a[3]}
+
+        </button>
+
+      </div>
+
     `;
+
   });
+
 }
+
+
+/* ---------------- PICK ---------------- */
 
 function pick(i,v){
-  user[i] = v;
+
+  userAnswers[i] = v;
+
 }
 
-/* ---------------- SUBMIT (NO-CORS SAFE) ---------------- */
 
-async function submit(){
+/* ---------------- SUBMIT ---------------- */
+
+async function submitQuiz(){
+
   show("loading");
 
   let score = 0;
+
   answers.forEach((a,i)=>{
-    if(user[i] === a) score++;
+
+    if(userAnswers[i] === a){
+
+      score++;
+
+    }
+
   });
 
-  const ip = await fetch("https://api.ipify.org?format=json")
-    .then(r => r.json())
-    .catch(() => ({ip:"unknown"}));
+  try {
 
-  // 🔥 NO-CORS FIX (wichtig!)
-  fetch(API, {
-    method: "POST",
-    mode: "no-cors",
-    body: JSON.stringify({
-      team: team.value,
-      score: score,
-      userAgent: navigator.userAgent,
-      ip: ip.ip
-    })
-  });
+    await fetch(API, {
 
-  // 15s fake loading
+      method:"POST",
+
+      headers:{
+        "Content-Type":"application/json"
+      },
+
+      body: JSON.stringify({
+
+        team: team.value || "Unknown",
+
+        score: score,
+
+        userAgent: navigator.userAgent,
+
+        ip: "hidden"
+
+      })
+
+    });
+
+  } catch(err){
+
+    console.log(err);
+
+  }
+
   setTimeout(()=>{
-    document.getElementById("score").innerText =
-      `Score: ${score}/${answers.length}`;
+
+    document.getElementById("score")
+      .innerText = `Score: ${score}/${answers.length}`;
 
     show("result");
-    loadLB("lb2");
-  },15000);
+
+    loadLeaderboard("lb2");
+
+  },2000);
+
 }
 
-/* ---------------- LEADERBOARD SAFE LOAD ---------------- */
 
-async function loadLB(id){
+/* ---------------- LEADERBOARD ---------------- */
+
+async function loadLeaderboard(id){
+
   try {
-    const res = await fetch(API + "?t=" + Date.now());
-    const text = await res.text();
-    const data = JSON.parse(text);
+
+    const res = await fetch(API);
+
+    const data = await res.json();
 
     document.getElementById(id).innerHTML =
-      "<h3>Bestenliste</h3><ol>" +
+
+      "<h3>🏆 Bestenliste</h3><ol>" +
+
       data.slice(0,10).map(x =>
+
         `<li>${x.team} - ${x.score}</li>`
-      ).join("") +
+
+      ).join("")
+
+      +
+
       "</ol>";
 
-  } catch(e){
-    console.log("LB error", e);
+  } catch(err){
+
+    console.log("Leaderboard Error",err);
+
   }
+
 }
 
-/* ---------------- AUTO REFRESH ---------------- */
 
-setInterval(()=>loadLB("lb1"),10000);
-loadLB("lb1");
+/* ---------------- AUTO LOAD ---------------- */
+
+loadLeaderboard("lb1");
+
+setInterval(()=>{
+
+  loadLeaderboard("lb1");
+
+},10000);
 
 </script>
 
 </body>
 </html>
+```
